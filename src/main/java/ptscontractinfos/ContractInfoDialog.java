@@ -11,28 +11,40 @@
 package ptscontractinfos;
 
 //import com.ib.client.Contract;
-
 import com.ib.client.Contract;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JFrame;
 
 //import javax.swing.JFrame;
 //import petrasys.connections.ContractInfos;
-
 /**
- *
+ *  Simple JDialog for entering a symbol and an exchange. Fetches all the information for contracts 
+ * form that exchange with that symbol.
  * @author rickcharon
  */
 public class ContractInfoDialog extends javax.swing.JDialog {
+
+  /**
+   * 
+   */
   private ContractInfos contractInfos;
 
-  /** Creates new form ContractInfoDialog */
+  /** Creates new form ContractInfoDialog
+   * @param parent
+   * @param modal  
+   */
   public ContractInfoDialog(java.awt.Frame parent, boolean modal) {
     super(parent, modal);
     initComponents();
     contractInfos = new ContractInfos();
   }
 
-  public ContractInfoDialog(JFrame parent)  {
+  /**
+   * Simple dialog for entering one underlying and exchange.
+   * @param parent JFrame
+   */
+  public ContractInfoDialog(JFrame parent) {
     super(parent, true);
     initComponents();
     contractInfos = new ContractInfos();
@@ -137,20 +149,25 @@ public class ContractInfoDialog extends javax.swing.JDialog {
     }//GEN-LAST:event_CancelButtonActionPerformed
 
     private void goButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_goButtonActionPerformed
-      Contract contract = new Contract();
-      contract.m_symbol = symbolInTextBox.getText().toUpperCase();
-      contract.m_secType = "FUT";
-      contract.m_exchange = exchangeTextBox.getText().toUpperCase();
-      contract.m_includeExpired = true;
-      contractInfos.setParams(this, contract);
-      Thread ciThread = new Thread(contractInfos);
-      ciThread.run();
-      //Trader trader = Dispatcher.getTrader();
-      //trader.setContractDetailsConnection(this);
-      //Strategy strategy = new DownloaderStrategy(); // a dummy strategy, needed for the framework
-      //trader.getAssistant().addStrategy(strategy); //Updates id for TWS
-      //int requestId = strategy.getId();
-      //trader.getAssistant().requestContractDetails(requestId, contract);
+      try {
+        Contract contract = new Contract();
+        contract.m_symbol = symbolInTextBox.getText().toUpperCase();
+        contract.m_secType = "FUT";
+        contract.m_exchange = exchangeTextBox.getText().toUpperCase();
+        contract.m_includeExpired = true;
+        contractInfos.setParams(this, contract);
+        Thread ciThread = new Thread(contractInfos);
+        ciThread.start();
+        //Trader trader = Dispatcher.getTrader();
+        //trader.setContractDetailsConnection(this);
+        //Strategy strategy = new DownloaderStrategy(); // a dummy strategy, needed for the framework
+        //trader.getAssistant().addStrategy(strategy); //Updates id for TWS
+        //int requestId = strategy.getId();
+        //trader.getAssistant().requestContractDetails(requestId, contract);
+        ciThread.join();
+      } catch (InterruptedException ex) {
+        System.out.println("Error in ContractInfoDialog.goButtonActionPerformed():" + ex.getMessage());
+      }
     }//GEN-LAST:event_goButtonActionPerformed
 
     private void formWindowOpened(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowOpened
@@ -160,21 +177,22 @@ public class ContractInfoDialog extends javax.swing.JDialog {
   /**
    * @param args the command line arguments
    */
-  public static void main(String args[]) {
-    java.awt.EventQueue.invokeLater(new Runnable() {
-
-      public void run() {
-        ContractInfoDialog dialog = new ContractInfoDialog(new javax.swing.JFrame(), true);
-        dialog.addWindowListener(new java.awt.event.WindowAdapter() {
-
-          public void windowClosing(java.awt.event.WindowEvent e) {
-            System.exit(0);
-          }
-        });
-        dialog.setVisible(true);
-      }
-    });
-  }
+//  public static void main(String args[]) {
+//    java.awt.EventQueue.invokeLater(new Runnable() {
+//
+//      public void run() {
+//        ContractInfoDialog dialog = new ContractInfoDialog(new javax.swing.JFrame(), true);
+//        dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+//
+//          @Override
+//          public void windowClosing(java.awt.event.WindowEvent e) {
+//            System.exit(0);
+//          }
+//        });
+//        dialog.setVisible(true);
+//      }
+//    });
+//  }
   // Variables declaration - do not modify//GEN-BEGIN:variables
   private javax.swing.JButton CancelButton;
   private javax.swing.JTextField exchangeTextBox;

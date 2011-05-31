@@ -5,10 +5,13 @@
 package ptscontractinfos;
 
 //import com.ib.client.Contract;
-
 import com.ib.client.Contract;
 import com.ib.client.ContractDetails;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.StringTokenizer;
 import javax.swing.JOptionPane;
 //import org.jfree.data.time.RegularTimePeriod;
 //import org.jfree.date.MonthConstants;
@@ -29,7 +32,6 @@ import ptsutils.PtsMySocket;
 //import petrasys.utils.DBops;
 //import petrasys.utils.IBWrapperAdapter;
 //import petrasys.utils.MsgBox;
-
 /**
  *
  * @author rickcharon
@@ -41,8 +43,17 @@ public class ContractInfos extends PtsIBWrapperAdapter implements Runnable {
   private Statement pgStmtForContractDetails;
   private Connection pgConnectionForContractDetails;
   private Contract contract;
-  int orderID;
-  int contractCount;
+  private int orderID;
+  private int contractCount;
+  private ArrayList<ULandExchange> uleList;
+
+  public ArrayList<ULandExchange> getUleList() {
+    return uleList;
+  }
+
+  public void setUleList(ArrayList<ULandExchange> uleList) {
+    this.uleList = uleList;
+  }
 
   public ContractInfos() {
     contractCount = 0;
@@ -50,6 +61,11 @@ public class ContractInfos extends PtsIBWrapperAdapter implements Runnable {
 
   public void setParams(ContractInfoDialog cidIn, Contract contractIn) {
     contractInfoDlg = cidIn;
+    contract = contractIn;
+    orderID = PtsIBConnectionManager.getTickerId();
+  }
+
+  public void setParams(Contract contractIn) {
     contract = contractIn;
     orderID = PtsIBConnectionManager.getTickerId();
   }
@@ -107,7 +123,7 @@ public class ContractInfos extends PtsIBWrapperAdapter implements Runnable {
       pgStmtForContractDetails.close();
       pgConnectionForContractDetails.close();
     } catch (SQLException ex) {
-            System.err.println("exception in contractDetailsEnd: " + ex.getMessage());
+      System.err.println("exception in contractDetailsEnd: " + ex.getMessage());
 
     } finally {
       System.exit(1);
@@ -119,17 +135,69 @@ public class ContractInfos extends PtsIBWrapperAdapter implements Runnable {
       setContractDetailsConnection();
       requestContractDetails();
     } catch (Exception ex) {
-           System.err.println("exception in ContractInfos.run(): " + ex.getMessage());
+      System.err.println("exception in ContractInfos.run(): " + ex.getMessage());
+    }
+  }
+
+  /**
+   * 
+   * @param filePath - name of file containing ul exchange pairs
+   * Example:
+   * ES, CBOT
+   * GC, NYMEX
+   * SI, NYMEX
+   * ZS, ECBOT
+   * ZW, ECBOT
+   * ZC, ECBOT
+   */
+  public void createULandExchangeList(String filePath) {
+    try {
+      uleList = new ArrayList<ULandExchange>();
+      BufferedReader br = new BufferedReader(new FileReader(filePath));
+      String strLine = "";
+      StringTokenizer st = null;
+      int lineNumber = 0, tokenNumber = 0;
+      //read comma separated file line by line
+      while ((strLine = br.readLine()) != null) {
+        lineNumber++;
+        ULandExchange ule = new ULandExchange();
+        //break comma separated line using ","
+        st = new StringTokenizer(strLine, ",");
+        while (st.hasMoreTokens()) {
+          tokenNumber++;
+          ule.setUl(st.nextToken().trim());
+          ule.setExchange(st.nextToken().trim());
+          uleList.add(ule);
+        }
+      }
+    } catch (Exception ex) {
+      System.err.println("Exception while reading ULandExchangeList file: " + ex.getMessage());
+      System.err.println("Format is symbol, exchange");
     }
   }
 
   public static void main(String[] args) {
-    //RegularTimePeriod rtp;
-    //MonthConstants mt;
-    System.out.println("");
-    PtsDBops.setuptradesConnection();
-    int j = 3;
+    if (args.length == 0) {
+      ContractInfoDialog dialog = new ContractInfoDialog(new javax.swing.JFrame(), true);
+    } else if (args.length == 1) {
+      try {
+        ContractInfos contractInfos = new ContractInfos();
+        contractInfos.createULandExchangeList(args[0]);
+        ArrayList<ULandExchange> uleList = contractInfos.getUleList();
+        for (ULandExchange ule : uleList) {
+          Contract contract = new Contract();
+          contract.m_symbol = ule.getUl();
+          contract.m_secType = "FUT";
+          contract.m_exchange = ule.getExchange();
+          contract.m_includeExpired = true;
+          contractInfos.setParams(contract);
+          Thread ciThread = new Thread(contractInfos);
+          ciThread.start();
+          ciThread.join();
+        }
+      } catch (InterruptedException ex) {
+        System.out.println("Error in ContractInfoDialog.goButtonActionPerformed():" + ex.getMessage());
+      }
+    }
   }
 }
-
-

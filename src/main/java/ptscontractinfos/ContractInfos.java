@@ -178,7 +178,7 @@ public class ContractInfos extends PtsIBWrapperAdapter implements Runnable {
 
   public static void main(String[] args) {
     if (args.length == 0) {
-      ContractInfoDialog dialog = new ContractInfoDialog(new javax.swing.JFrame(), true);
+      new ContractInfoDialog(new javax.swing.JFrame(), true).show();
     } else if (args.length == 1) {
       try {
         ContractInfos contractInfos = new ContractInfos();
